@@ -34,6 +34,7 @@ if(!require(caret)) install.packages("caret", repos = "http://cran.us.r-project.
 if(!require(knitr)) install.packages("knitr", repos = "http://cran.us.r-project.org")
 if(!require(tinytex)) install.packages("tinytex", repos = "http://cran.us.r-project.org")
 if(!require(foreign)) install.packages("foreign", repos = "http://cran.us.r-project.org")
+if(!require(haven)) install.packages("foreign", repos = "http://cran.us.r-project.org")
 
 
 library(rvest)
@@ -44,6 +45,8 @@ library(caret)
 library(knitr)
 library(tinytex)
 library(foreign)
+library(haven)
+
 
 ###Install tinytex if needed
 if(is_tinytex()==FALSE) tinytex::install_tinytex()
@@ -61,23 +64,59 @@ my_extract_WT_teams <- function(year){
 
   h <- read_html(url)
   
+  #Team list tag
   Team_list_WT <- h%>%
     html_elements(".mt20")%>%
     .[[1]]%>%
     html_elements("a")%>%
     html_attr("href")
   
+  #Team name
+  Team_name_WT <- h%>%
+    html_elements(".mt20")%>%
+    .[[1]]%>%
+    html_elements("a")%>%
+    html_text()
+  
+  #Team nationality WT
+  Nationality_WT <- h%>%
+    html_elements(".mt20")%>%
+    .[[1]]%>%
+    html_elements("span")%>%
+    html_attr("class")%>%
+    word(-1)
+  
+  #Team tag ProTour
   Team_list_ProTour <- h%>%
     html_elements(".mt20")%>%
     .[[3]]%>%
     html_elements("a")%>%
     html_attr("href")
   
+  #Team name ProTour
+  Team_name_ProTour <- h%>%
+    html_elements(".mt20")%>%
+    .[[3]]%>%
+    html_elements("a")%>%
+    html_text()
+  
+  #Team nationality ProTour
+  Nationality_ProTour <- h%>%
+    html_elements(".mt20")%>%
+    .[[3]]%>%
+    html_elements("span")%>%
+    html_attr("class")%>%
+    word(-1)
+  
   WT_teams <- tibble(year=year,
          team=Team_list_WT,
+         team_name=Team_name_WT,
+         nation_team=Nationality_WT,
          division="World Tour")
   ProTour_teams <- tibble(year=year,
          team=Team_list_ProTour,
+         team_name=Team_name_ProTour,
+         nation_team=Nationality_ProTour,
          division="Pro Tour")
   
   WT_teams%>%
@@ -92,13 +131,13 @@ my_extract_WT_teams(2022)
 Team_list_2000_to_2022 <- map_dfr(2000:2022,my_extract_WT_teams)%>%
   mutate(team=str_remove(team,"team/"))
 
-#635 teams
+#1033 teams
 nrow(Team_list_2000_to_2022)
 
 #Save
 save(Team_list_2000_to_2022,file=file.path("rda","Team_list_2000_to_2022"))
 #Stata format
-write.dta(Team_list_2000_to_2022, file.path("dta","Team_list_2000_to_2022.dta"))
+write_dta(Team_list_2000_to_2022, file.path("dta","Team_list_2000_to_2022.dta"))
 
 
 ##################################################
@@ -107,19 +146,43 @@ write.dta(Team_list_2000_to_2022, file.path("dta","Team_list_2000_to_2022.dta"))
 #                                                #
 ##################################################
 
+
 #Extract function
 my_extract_rider_list <- function(team){
   url <- paste0("https://www.procyclingstats.com/team/",team)
   
   h <- read_html(url)
   
+  #Riders tag
   riders <- h%>%
     html_elements(".list.pad2")%>%
-    .[[1]]%>%
+    .[[4]]%>%
     html_elements("a")%>%
     html_attr("href")
   
+  #Riders name
+  riders_name <- h%>%html_elements(".list.pad2")%>%
+    .[[4]]%>%
+    html_elements("a")%>%
+    html_text()
+  
+  #Rider age
+  riders_age <- h%>%html_elements(".list.pad2")%>%
+    .[[4]]%>%
+    html_elements(".right")%>%
+    html_text()
+  
+  #Rider nationality
+  riders_nation <- h%>%html_elements(".list.pad2")%>%
+    .[[4]]%>%
+    html_elements("span")%>%
+    html_attr("class")%>%
+    word(-1)
+  
   tibble(rider=riders,
+         rider_name=riders_name,
+         rider_age=riders_age,
+         rider_nation=riders_nation,
          team=team)
 }
 
@@ -137,7 +200,7 @@ Rider_list_2000_to_2022 <- map_dfr(Team_list_2000_to_2022$team,my_extract_rider_
 #Save
 save(Rider_list_2000_to_2022,file=file.path("rda","Rider_list_2000_to_2022"))
 #Stata format
-write.dta(Rider_list_2000_to_2022, file.path("dta","Rider_list_2000_to_2022.dta"))
+write_dta(Rider_list_2000_to_2022, file.path("dta","Rider_list_2000_to_2022.dta"))
 
 
 
@@ -195,7 +258,7 @@ Rider_results_2000_to_2022_dtb <- map_dfr(Rider_list,function(r){
 #Save
 save(Rider_results_2000_to_2022_dtb,file=file.path("rda","Rider_results_2000_to_2022_dtb"))
 #Stata format
-write.dta(Rider_results_2000_to_2022_dtb, file.path("dta","Rider_results_2000_to_2022_dtb.dta"))
+write_dta(Rider_results_2000_to_2022_dtb, file.path("dta","Rider_results_2000_to_2022_dtb.dta"))
 
 
 ##################################################
@@ -239,15 +302,10 @@ Rider_results_2000_to_2022_GC_dtb <- map2_dfr(Rider_list,sub_code$code[sub_code$
 })%>%
   rename_at(2:7,paste0,"_GC") 
 
-#Rider_results_2000_to_2022_GC_dtb <- map2_dfr(Rider_list,sub_code$code[sub_code$sub=="GC"],my_extract_rider_results_sub)%>%
-#  rename_at(2:7,paste0,"_GC") 
-
 #Save
 save(Rider_results_2000_to_2022_GC_dtb,file=file.path("rda","Rider_results_2000_to_2022_GC_dtb"))
 #Stata format
-write.dta(Rider_results_2000_to_2022_GC_dtb, file.path("dta","Rider_results_2000_to_2022_GC_dtb.dta"))
-
-
+write_dta(Rider_results_2000_to_2022_GC_dtb, file.path("dta","Rider_results_2000_to_2022_GC_dtb.dta"))
 
 ######Stages results
 
@@ -258,15 +316,10 @@ Rider_results_2000_to_2022_Stages_dtb <- map2_dfr(Rider_list,sub_code$code[sub_c
 })%>%
   rename_at(2:7,paste0,"_Stages") 
 
-#Rider_results_2000_to_2022_Stages_dtb <- map2_dfr(Rider_list,sub_code$code[sub_code$sub=="Stages"],my_extract_rider_results_sub)%>%
-  #rename_at(2:7,paste0,"_Stages") 
-
 #Save
 save(Rider_results_2000_to_2022_Stages_dtb,file=file.path("rda","Rider_results_2000_to_2022_Stages_dtb"))
 #Stata format
-write.dta(Rider_results_2000_to_2022_Stages_dtb, file.path("dta","Rider_results_2000_to_2022_Stages_dtb.dta"))
-
-
+write_dta(Rider_results_2000_to_2022_Stages_dtb, file.path("dta","Rider_results_2000_to_2022_Stages_dtb.dta"))
 
 ######One day races
 
@@ -277,14 +330,10 @@ Rider_results_2000_to_2022_1day_dtb <- map2_dfr(Rider_list,sub_code$code[sub_cod
 })%>%
   rename_at(2:7,paste0,"_1day") 
 
-#Rider_results_2000_to_2022_1day_dtb <- map2_dfr(Rider_list,sub_code$code[sub_code$sub=="One_day_races"],my_extract_rider_results_sub)%>%
- # rename_at(2:7,paste0,"_1day")
-
 #Save
 save(Rider_results_2000_to_2022_1day_dtb,file=file.path("rda","Rider_results_2000_to_2022_1day_dtb"))
 #Stata format
-write.dta(Rider_results_2000_to_2022_1day_dtb, file.path("dta","Rider_results_2000_to_2022_1day_dtb.dta"))
-
+write_dta(Rider_results_2000_to_2022_1day_dtb, file.path("dta","Rider_results_2000_to_2022_1day_dtb.dta"))
 
 ######TT
 Rider_results_2000_to_2022_TT_dtb <- map2_dfr(Rider_list,sub_code$code[sub_code$sub=="TT"],function(r,sub){
@@ -294,29 +343,29 @@ Rider_results_2000_to_2022_TT_dtb <- map2_dfr(Rider_list,sub_code$code[sub_code$
 })%>%
   rename_at(2:7,paste0,"_TT") 
 
-#Rider_results_2000_to_2022_TT_dtb <- map2_dfr(Rider_list,sub_code$code[sub_code$sub=="TT"],my_extract_rider_results_sub)%>%
- # rename_at(2:7,paste0,"_TT")
-
 #Save
 save(Rider_results_2000_to_2022_TT_dtb,file=file.path("rda","Rider_results_2000_to_2022_TT_dtb"))
 #Stata format
-write.dta(Rider_results_2000_to_2022_TT_dtb, file.path("dta","Rider_results_2000_to_2022_TT_dtb.dta"))
+write_dta(Rider_results_2000_to_2022_TT_dtb, file.path("dta","Rider_results_2000_to_2022_TT_dtb.dta"))
+
 
 ##################################################
 #                                                #
-#             1.6. Extract rider bio             #
+#             1.6. Merge with team               #
 #                                                #
 ##################################################
 
-#Upcoming
+load(file=file.path("rda","Team_list_2000_to_2022"))
+load(file=file.path("rda","Rider_results_2000_to_2022_dtb"))
+load(file=file.path("rda","Rider_results_2000_to_2022_GC_dtb"))
+load(file=file.path("rda","Rider_results_2000_to_2022_1day_dtb"))
+load(file=file.path("rda","Rider_results_2000_to_2022_Stages_dtb"))
+load(file=file.path("rda","Rider_results_2000_to_2022_TT_dtb"))
+load(file=file.path("rda","Rider_list_2000_to_2022"))
 
-##################################################
-#                                                #
-#             1.7. Merge with team               #
-#                                                #
-##################################################
 
 Rider_results_2000_to_2022_dtb_clean <- Rider_list_2000_to_2022%>%
+  left_join(Team_list_2000_to_2022,by=c("team","year"))%>%
   left_join(Rider_results_2000_to_2022_dtb,by=c("year","rider"))%>%
   left_join(Rider_results_2000_to_2022_GC_dtb,by=c("year","rider"))%>%
   left_join(Rider_results_2000_to_2022_Stages_dtb,by=c("year","rider"))%>%
@@ -325,18 +374,118 @@ Rider_results_2000_to_2022_dtb_clean <- Rider_list_2000_to_2022%>%
   
 
 
-##################################################
-#                                                #
-#             1.8. Data wrangling                #
-#                                                #
-##################################################
-
-
-
-
 save(Rider_results_2000_to_2022_dtb_clean,file=file.path("rda","Rider_results_2000_to_2022_dtb_clean"))
 #Stata format
-write.dta(Rider_results_2000_to_2022_dtb_clean, file.path("dta","Rider_results_2000_to_2022_dtb_clean.dta"))
+write_dta(Rider_results_2000_to_2022_dtb_clean, file.path("dta","Rider_results_2000_to_2022_dtb_clean.dta"))
+
+
+##################################################
+#                                                #
+#       1.7. Encoding MPCC (Current teams)       #
+#                                                #
+##################################################
+
+####Adhesion rules:
+#-If info: Day of adhesion
+#-If only year of adhesion: 1st of July
+####
+
+########World Teams
+
+url <- "https://www.mpcc.fr/uci-world-teams/"
+h <- read_html(url)
+
+#Member names
+MPCC_member_names_WT <- h%>%
+  html_elements(".membres_caracteristiques")%>%
+  html_elements("h2")%>%
+  html_text
+
+MPCC_member_date_WT <- h%>%
+  html_elements(".membres_caracteristiques")%>%
+  html_elements(".focus")%>%
+  html_text()%>%
+  as_tibble()%>%
+  filter(str_detect(value,"^[0123]")==TRUE)%>%
+  .$value
+
+MPCC_member_WT <- tibble(team_MPCC=MPCC_member_names_WT,
+                         date_MPCC=MPCC_member_date_WT,
+                         division="WT")
+
+######Pro Teams
+  
+url <- "https://www.mpcc.fr/uci-pro-teams/"
+h <- read_html(url)  
+
+#Member names
+MPCC_member_names_ProTour <- h%>%
+  html_elements(".membres_caracteristiques")%>%
+  html_elements("h2")%>%
+  html_text
+
+MPCC_member_date_ProTour <- h%>%
+  html_elements(".membres_caracteristiques")%>%
+  html_elements(".focus")%>%
+  html_text()%>%
+  as_tibble()%>%
+  filter(str_detect(value,"^[0123]")==TRUE)%>%
+  .$value
+
+MPCC_member_ProTour <- tibble(team_ProTour=MPCC_member_names_ProTour,
+                         date_ProTour=MPCC_member_date_ProTour,
+                         division="Pro Tour")
+
+##################################################
+#                                                #
+#       1.8. Encoding MPCC (Current riders)      #
+#                                                #
+##################################################
+
+
+url <- "https://www.mpcc.fr/coureurs/"
+h <- read_html(url)
+
+###Division nodes
+nodes_division <- h%>%
+  html_elements(".membres_div-niveau-equipe")
+length(nodes_division)
+
+division_name <- nodes_division[[1]]%>%
+  html_elements("h3")%>%
+  html_text()
+  
+
+###WT nodes
+nodes_WT <- nodes_division[[1]]%>%
+  html_elements(".membres_div-equipe")
+
+length_nodes_WT <- length(nodes_WT)
+
+#1st team name
+nodes_WT[[1]]%>%
+  html_elements("h4")%>%
+  html_text()
+
+#1st team members
+rider_names <- nodes_WT[[1]]%>%
+  html_elements(".membres_div-coureur")%>%
+  html_elements(".membres_nom-coureur")%>%
+  html_text()
+
+
+
+
+
+
+#########################################
+
+Rider_results_2000_to_2022_dtb_clean%>%
+  filter(str_detect(team_name,"AG2R" & year>2007))%>%
+  select(team)%>%
+  unique()
+
+
 
 
 
