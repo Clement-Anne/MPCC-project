@@ -9,16 +9,23 @@
 #############General infos################
 ##Author: Clément ANNE
 ##Author e-mail: clement.anne90@gmail.com
-##Date: May 12,2022
+##Date: May 15,2022
 ##########################################
 
 ################Outline###################
 ##
-##  1.1. Team list 2007-2022   
-##  1.2. Rider-team list 2007-2022
+##  1.1. Team list    
+##  1.2. Rider-team list 
 ##  1.3. Unique rider list
 ##  1.4. Rider results
-##  
+##  1.5. Rider results (subcategories)
+##  1.6. Merge dtb with team list
+##  1.7. Extract MPCC (Current teams)
+##  1.8. Extract MPCC (Current riders)
+##  1.9. Extract MPCC (Former riders)
+##  1.10. Article list MPCC
+##
+##################################################
 ##
 ##########################################
 
@@ -351,7 +358,7 @@ write_dta(Rider_results_2000_to_2022_TT_dtb, file.path("dta","Rider_results_2000
 
 ##################################################
 #                                                #
-#             1.6. Merge with team               #
+#             1.6. Merge dtb with team list      #
 #                                                #
 ##################################################
 
@@ -378,10 +385,12 @@ save(Rider_results_2000_to_2022_dtb_clean,file=file.path("rda","Rider_results_20
 #Stata format
 write_dta(Rider_results_2000_to_2022_dtb_clean, file.path("dta","Rider_results_2000_to_2022_dtb_clean.dta"))
 
+load(file=file.path("rda","Rider_results_2000_to_2022_dtb_clean"))
+
 
 ##################################################
 #                                                #
-#       1.7. Encoding MPCC (Current teams)       #
+#       1.7. Extract MPCC (Current teams)        #
 #                                                #
 ##################################################
 
@@ -432,13 +441,23 @@ MPCC_member_date_ProTour <- h%>%
   filter(str_detect(value,"^[0123]")==TRUE)%>%
   .$value
 
-MPCC_member_ProTour <- tibble(team_ProTour=MPCC_member_names_ProTour,
-                         date_ProTour=MPCC_member_date_ProTour,
+MPCC_member_ProTour <- tibble(team_MPCC=MPCC_member_names_ProTour,
+                         date_MPCC=MPCC_member_date_ProTour,
                          division="Pro Tour")
+
+MPCC_team_members <- MPCC_member_WT%>%
+  bind_rows(MPCC_member_ProTour)
+
+save(MPCC_team_members,file=file.path("rda","MPCC_team_members"))
+#Stata format
+write_dta(MPCC_team_members, file.path("dta","MPCC_team_members.dta"))
+
+load(file=file.path("rda","MPCC_team_members"))
+
 
 ##################################################
 #                                                #
-#       1.8. Encoding MPCC (Current riders)      #
+#       1.8. Extract MPCC (Current riders)       #
 #                                                #
 ##################################################
 
@@ -449,44 +468,181 @@ h <- read_html(url)
 ###Division nodes
 nodes_division <- h%>%
   html_elements(".membres_div-niveau-equipe")
-length(nodes_division)
 
-division_name <- nodes_division[[1]]%>%
-  html_elements("h3")%>%
-  html_text()
+length_nodes_division <- length(nodes_division)
+
+###Data extraction
+MPCC_rider_dtb_May14_2022 <- map_dfr(1:length_nodes_division,function(i){
+  division_name <- nodes_division[[i]]%>%
+    html_elements("h3")%>%
+    html_text()
   
+  #Teams in the division
+  nodes_team <- nodes_division[[i]]%>%
+    html_elements(".membres_div-equipe")
+  
+  length_nodes_team <- length(nodes_team)
+  
+    map_dfr(1:length_nodes_team,function(j){
+    
+      team_name <- nodes_team[[j]]%>%
+      html_elements("h4")%>%
+      html_text()
+    
+      #team members
+      rider_names <- nodes_team[[j]]%>%
+        html_elements(".membres_div-coureur")%>%
+        html_elements(".membres_nom-coureur")%>%
+        html_text()
+      
+      #Nationality members
+      rider_nation <- nodes_team[[j]]%>%
+        html_elements(".membres_div-coureur")%>%
+        html_elements(".membres_nationalite-coureur")%>%
+        html_text()
+      
+      tibble(team_MPCC=team_name,
+             rider_MPCC=rider_names,
+             division=division_name,
+             nation=rider_nation)
+  })
 
-###WT nodes
-nodes_WT <- nodes_division[[1]]%>%
-  html_elements(".membres_div-equipe")
+})
 
-length_nodes_WT <- length(nodes_WT)
 
-#1st team name
-nodes_WT[[1]]%>%
-  html_elements("h4")%>%
+save(MPCC_rider_dtb_May14_2022,file=file.path("rda","MPCC_rider_dtb_May14_2022"))
+#Stata format
+write_dta(MPCC_rider_dtb_May14_2022, file.path("dta","MPCC_rider_dtb_May14_2022"))
+
+load(file=file.path("rda","MPCC_rider_dtb_May14_2022"))
+
+
+##################################################
+#                                                #
+#       1.9. Extract MPCC (Former riders)        #
+#                                                #
+##################################################
+
+url <- "https://www.mpcc.fr/anciens-coureurs/"
+h <- read_html(url)
+
+former_rider_names <- h%>%
+  html_elements("span.membres_nom-coureur")%>%
+  html_text()
+former_rider_nation <- h%>%
+  html_elements(".membres_nationalite-coureur")%>%
   html_text()
 
-#1st team members
-rider_names <- nodes_WT[[1]]%>%
-  html_elements(".membres_div-coureur")%>%
-  html_elements(".membres_nom-coureur")%>%
-  html_text()
+Former_rider_MPCC_dtb_May14_2022 <- tibble(rider_name=former_rider_names,
+                                           rider_nation=former_rider_nation)
+
+save(Former_rider_MPCC_dtb_May14_2022,file=file.path("rda","Former_rider_MPCC_dtb_May14_2022"))
+#Stata format
+write_dta(Former_rider_MPCC_dtb_May14_2022, file.path("dta","Former_rider_MPCC_dtb_May14_2022.dta"))
+
+load(file=file.path("rda","Former_rider_MPCC_dtb_May14_2022"))
+
+
+##################################################
+#                                                #
+#         1.10. Article list MPCC                #
+#                                                #
+##################################################
+
+
+article_cat <- c("adhesions","communique-de-presse","statistiques","tests-de-cortisolemie","divers")
+
+my_extract_articles_cat <- function(n){
+  
+  print(as.character(n))
+  url <- paste0("https://www.mpcc.fr/",n)
+  h <- read_html(url)
+  
+  links_1 <- h%>%
+    html_elements(".t-entry-title.h5")%>%
+    html_elements("a")%>%
+    html_attr("href")
+  
+  title_1 <-  h%>%
+    html_elements(".t-entry-title.h5")%>%
+    html_elements("a")%>%
+    html_text()
+  
+  date_1 <- h%>%
+    html_elements(".t-entry-date")%>%
+    html_text()
+  
+  articles_1 <- tibble(links=links_1,
+                       title=title_1,
+                       date=date_1)
+  
+  articles_i <- map_dfr(2:10,function(i){
+    url <- paste0("https://www.mpcc.fr/adhesions/?upage=",as.character(i))
+    h <- read_html(url)
+    
+    links <- h%>%
+      html_elements(".t-entry-title.h5")%>%
+      html_elements("a")%>%
+      html_attr("href")
+    
+    title <-  h%>%
+      html_elements(".t-entry-title.h5")%>%
+      html_elements("a")%>%
+      html_text()
+    
+    date <- h%>%
+      html_elements(".t-entry-date")%>%
+      html_text()
+    
+    tibble(links,title,date)
+  })
+  article_list <- articles_1%>%
+    bind_rows(articles_i)%>%
+    mutate(article_cat=n)
+  
+  length_article_list <- nrow(article_list)
+  
+  article_text <- map_dfr(1:length_article_list,function(j){
+    url <- article_list$links[j]
+    h <- read_html(url)
+    
+    article_text <- h%>%
+      html_element("div.col-lg-9")%>%
+      html_text()
+    
+    tibble(article_text)
+  })
+  
+  articles_MPCC_dtb_adhesion <- article_list%>%
+    bind_cols(article_text=article_text)
+}
+
+article_MPCC_dtb <- map_dfr(article_cat,my_extract_articles_cat)
+
+
+save(article_MPCC_dtb,file=file.path("rda","article_MPCC_dtb"))
+#Stata format
+write_dta(article_MPCC_dtb, file.path("dta","article_MPCC_dtb.dta"))
+
+load(file=file.path("rda","article_MPCC_dtb"))
+
+
+#########################################Attempt to filter by key words
+
+article_MPCC_dtb%>%
+  mutate(N_equipe=str_count(article_text,"équipe|formation"))%>%
+  mutate(N_WT=str_count(article_text,"[Ww]orld\\s?[tT](our|eam)"))%>%
+  mutate(N_ProTour=str_count(article_text,"[Pp]ro\\s?[tT](our|eam)"))%>%
+  mutate(N_continental=str_count(article_text,"[Cc]ontinental"))%>%
+  mutate(N_feminin=str_count(article_text,"([Ff]éminin|[Ww]omen)"))%>%
+  mutate(N_masculin=str_count(article_text,"[Mm]asculin"))%>%
+  mutate(N_young=str_count(article_text,"([Jj]eune|[Ee]spoir|[Jj]unior)"))%>%
+  filter(N_equipe!=0 & sum(N_WT,N_ProTour,N_continental,N_masculin)!=0)%>%
+  nrow()
+#395/440 -> Unsuccessful filtering
 
 
 
 
 
 
-#########################################
-
-Rider_results_2000_to_2022_dtb_clean%>%
-  filter(str_detect(team_name,"AG2R" & year>2007))%>%
-  select(team)%>%
-  unique()
-
-
-
-
-
-#load(file=file.path("rda","Rider_results_2000_to_2022_dtb_clean"))
