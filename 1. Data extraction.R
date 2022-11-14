@@ -64,6 +64,7 @@ if(is_tinytex()==FALSE) tinytex::install_tinytex()
 #                                                #
 ##################################################
 
+
 #Extract function
 my_extract_WT_teams <- function(year){
   #Add year to the URL
@@ -91,7 +92,8 @@ my_extract_WT_teams <- function(year){
     .[[1]]%>%
     html_elements("span")%>%
     html_attr("class")%>%
-    word(-1)
+    word(-1) %>% 
+    .[-1] 
   
   #Team tag ProTour
   Team_list_ProTour <- h%>%
@@ -113,7 +115,8 @@ my_extract_WT_teams <- function(year){
     .[[3]]%>%
     html_elements("span")%>%
     html_attr("class")%>%
-    word(-1)
+    word(-1)%>% 
+    .[-1] 
   
   WT_teams <- tibble(year=year,
          team=Team_list_WT,
@@ -208,8 +211,6 @@ Rider_list_2000_to_2022 <- map_dfr(Team_list_2000_to_2022$team,my_extract_rider_
 save(Rider_list_2000_to_2022,file=file.path("rda","Rider_list_2000_to_2022"))
 #Stata format
 write_dta(Rider_list_2000_to_2022, file.path("dta","Rider_list_2000_to_2022.dta"))
-
-
 
 ##################################################
 #                                                #
@@ -472,7 +473,7 @@ nodes_division <- h%>%
 length_nodes_division <- length(nodes_division)
 
 ###Data extraction
-MPCC_rider_dtb_May14_2022 <- map_dfr(1:length_nodes_division,function(i){
+MPCC_rider_dtb_Nov13_2022 <- map_dfr(1:length_nodes_division,function(i){
   division_name <- nodes_division[[i]]%>%
     html_elements("h3")%>%
     html_text()
@@ -510,11 +511,11 @@ MPCC_rider_dtb_May14_2022 <- map_dfr(1:length_nodes_division,function(i){
 })
 
 
-save(MPCC_rider_dtb_May14_2022,file=file.path("rda","MPCC_rider_dtb_May14_2022"))
+save(MPCC_rider_dtb_Nov13_2022,file=file.path("rda","MPCC_rider_dtb_Nov13_2022"))
 #Stata format
-write_dta(MPCC_rider_dtb_May14_2022, file.path("dta","MPCC_rider_dtb_May14_2022"))
+write_dta(MPCC_rider_dtb_Nov13_2022, file.path("dta","MPCC_rider_dtb_Nov13_2022.dta"))
 
-load(file=file.path("rda","MPCC_rider_dtb_May14_2022"))
+load(file=file.path("rda","MPCC_rider_dtb_Nov13_2022"))
 
 
 ##################################################
@@ -533,14 +534,14 @@ former_rider_nation <- h%>%
   html_elements(".membres_nationalite-coureur")%>%
   html_text()
 
-Former_rider_MPCC_dtb_May14_2022 <- tibble(rider_name=former_rider_names,
+Former_rider_MPCC_dtb_Nov13_2022 <- tibble(rider_name=former_rider_names,
                                            rider_nation=former_rider_nation)
 
-save(Former_rider_MPCC_dtb_May14_2022,file=file.path("rda","Former_rider_MPCC_dtb_May14_2022"))
+save(Former_rider_MPCC_dtb_Nov13_2022,file=file.path("rda","Former_rider_MPCC_dtb_Nov13_2022"))
 #Stata format
-write_dta(Former_rider_MPCC_dtb_May14_2022, file.path("dta","Former_rider_MPCC_dtb_May14_2022.dta"))
+write_dta(Former_rider_MPCC_dtb_Nov13_2022, file.path("dta","Former_rider_MPCC_dtb_Nov13_2022.dta"))
 
-load(file=file.path("rda","Former_rider_MPCC_dtb_May14_2022"))
+load(file=file.path("rda","Former_rider_MPCC_dtb_Nov13_2022"))
 
 
 ##################################################

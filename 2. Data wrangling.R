@@ -20,8 +20,6 @@
 ##  2.4.  Other wrangling
 ##
 ##################################################
-##
-##########################################
 
 #Clear current environment
 rm(list=ls())
@@ -292,11 +290,11 @@ Rider_results_2000_to_2022_dtb_clean <- Rider_results_2000_to_2022_dtb_clean%>%
 
 ####Assumption: Treat rider adhesion as time-invariant since no adhesion date is available
 
-load(file=file.path("rda","MPCC_rider_dtb_May14_2022"))
+load(file=file.path("rda","MPCC_rider_dtb_Nov13_2022"))
 
 ##############World Tour and Pro Tour
 
-MPCC_riders_WT_ProTeams <- MPCC_rider_dtb_May14_2022%>%
+MPCC_riders_WT_ProTeams <- MPCC_rider_dtb_Nov13_2022%>%
   rename(rider_name=rider_MPCC)%>%
   filter(str_detect(division,"(UCI\\sWORLD\\sTEAM|UCI\\sPRO\\sTEAM)")==TRUE)%>%
   select(rider_name)%>%
@@ -683,7 +681,7 @@ MPCC_riders_WT_ProTeams_fix <- tibble(rider_name=rider_name_fix)%>%
 
 ###Only those which could be merged directly
 
-MPCC_riders_Continental <- MPCC_rider_dtb_May14_2022%>%
+MPCC_riders_Continental <- MPCC_rider_dtb_Nov13_2022%>%
   rename(rider_name=rider_MPCC)%>%
   filter(str_detect(division,"UCI\\sCONTINENTAL\\sTEAM")==TRUE)%>%
   select(rider_name)%>%
@@ -723,17 +721,17 @@ Rider_results_2000_to_2022_dtb_clean <- Rider_results_2000_to_2022_dtb_clean%>%
 ####Assumption: Treat rider adhesion as time-invariant since no adhesion date is available
 #Note: Includes former women riders
 
-load(file=file.path("rda","Former_rider_MPCC_dtb_May14_2022"))
+load(file=file.path("rda","Former_rider_MPCC_dtb_Nov13_2022"))
 
-nrow(Former_rider_MPCC_dtb_May14_2022) #193
+nrow(Former_rider_MPCC_dtb_Nov13_2022) #193
 
-Former_rider_MPCC_dtb_May14_2022%>%
+Former_rider_MPCC_dtb_Nov13_2022%>%
   inner_join(Rider_results_2000_to_2022_dtb_clean,by="rider_name")%>%
   .$rider_name%>%
   unique()%>%
   length() #118 extra riders merged
 
-Former_rider_MPCC_dtb_May14_2022%>%
+Former_rider_MPCC_dtb_Nov13_2022%>%
   inner_join(Rider_results_2000_to_2022_dtb_clean,by="rider_name")%>%
   filter(year>=2018)%>%
   .$rider_name%>%
@@ -741,12 +739,12 @@ Former_rider_MPCC_dtb_May14_2022%>%
   length() #114 extra riders merged (rode in 2018-2022)
 
 
-Former_rider_MPCC_dtb_May14_2022 <- Former_rider_MPCC_dtb_May14_2022%>%
+Former_rider_MPCC_dtb_Nov13_2022 <- Former_rider_MPCC_dtb_Nov13_2022%>%
   mutate(rider_MPCC_2022list_former=1)%>%
   rename(rider_nation_former=rider_nation)
 
 Rider_results_2000_to_2022_dtb_clean <- Rider_results_2000_to_2022_dtb_clean%>%
-  left_join(Former_rider_MPCC_dtb_May14_2022,by="rider_name")
+  left_join(Former_rider_MPCC_dtb_Nov13_2022,by="rider_name")
 
 
 ##################################################
