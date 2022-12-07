@@ -29,7 +29,7 @@ if(!require(caret)) install.packages("caret", repos = "http://cran.us.r-project.
 if(!require(knitr)) install.packages("knitr", repos = "http://cran.us.r-project.org")
 if(!require(tinytex)) install.packages("tinytex", repos = "http://cran.us.r-project.org")
 if(!require(foreign)) install.packages("foreign", repos = "http://cran.us.r-project.org")
-if(!require(haven)) install.packages("foreign", repos = "http://cran.us.r-project.org")
+if(!require(haven)) install.packages("haven", repos = "http://cran.us.r-project.org")
 
 
 library(rvest)

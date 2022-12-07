@@ -777,6 +777,6 @@ Rider_results_2000_to_2022_dtb_clean2%>%
 
 #Team MPCC
 Rider_results_2000_to_2022_dtb_clean2%>%
-  filter(year>=2008  & year<2022)%>%
+  filter(year>=2018  & year<2022)%>%
   .$team_MPCC%>%
   table()%>%prop.table()
