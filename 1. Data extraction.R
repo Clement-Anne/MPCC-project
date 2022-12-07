@@ -640,7 +640,6 @@ article_MPCC_dtb%>%
   mutate(N_young=str_count(article_text,"([Jj]eune|[Ee]spoir|[Jj]unior)"))%>%
   filter(N_equipe!=0 & sum(N_WT,N_ProTour,N_continental,N_masculin)!=0)%>%
   nrow()
-#395/440 -> Unsuccessful filtering
 
 
 
